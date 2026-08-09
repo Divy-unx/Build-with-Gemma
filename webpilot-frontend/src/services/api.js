@@ -44,17 +44,69 @@ export const api = {
     }
   },
 
-  async sendMessage(message) {
+  async getConversations() {
+    try {
+      const response = await fetch(`${API_BASE}/api/conversations`);
+      if (!response.ok) throw new Error('Failed to fetch conversations');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  },
+
+  async getConversation(id) {
+    try {
+      const response = await fetch(`${API_BASE}/api/conversations/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch conversation');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+
+  async createConversation(title = null) {
+    try {
+      const response = await fetch(`${API_BASE}/api/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error('Failed to create conversation');
+      return await response.json();
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+
+  async deleteConversation(id) {
+    try {
+      const response = await fetch(`${API_BASE}/api/conversations/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete conversation');
+      return true;
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
+  },
+
+  async sendMessage(conversationId, message) {
     try {
       const response = await fetch(`${API_BASE}/api/agent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ conversationId, message }),
       });
       if (!response.ok) throw new Error(`Backend error: ${response.status}`);
-      const text = await response.text(); // Because the backend might just return plain text
+      const text = await response.text();
       return text;
     } catch (error) {
       console.error(error);

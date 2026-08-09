@@ -30,6 +30,7 @@ function App() {
         currentSessionId={currentSessionId} 
         newChat={newChat} 
         switchChat={switchChat}
+        deleteChat={deleteChat}
         backendStatus={backendStatus}
         isCollapsed={isSidebarCollapsed}
         toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}

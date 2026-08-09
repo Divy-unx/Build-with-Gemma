@@ -158,6 +158,33 @@ button, input, textarea {
   justify-content: center;
 }
 
+.sidebar.collapsed h2,
+.sidebar.collapsed .btn-text,
+.sidebar.collapsed .recent-chats-container h3,
+.sidebar.collapsed .chat-title,
+.sidebar.collapsed .status-label,
+.sidebar.collapsed .status-text,
+.sidebar.collapsed .user-details {
+  opacity: 0;
+  width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.sidebar-header h2,
+.btn-text,
+.recent-chats-container h3,
+.chat-title,
+.status-label,
+.status-text,
+.user-details {
+  transition: opacity 200ms ease, width 280ms ease;
+  white-space: nowrap;
+}
+
 .brand-logo {
   width: 40px;
   height: 40px;
@@ -248,30 +275,66 @@ button, input, textarea {
 }
 
 .recent-chats-list::-webkit-scrollbar { width: 4px; }
-.recent-chats-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.recent-chats-list::-webkit-scrollbar-track { background: transparent; }
+.recent-chats-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.recent-chat-item-wrapper {
+  display: flex;
+  position: relative;
+  width: 100%;
+}
 
 .recent-chat-item {
-  width: 100%;
-  background: var(--glass-bg);
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 10px 12px;
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-secondary);
+  border-radius: 8px;
   cursor: pointer;
   transition: 150ms ease;
   text-align: left;
 }
 
-.sidebar.collapsed .recent-chat-item {
+.delete-chat-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 10px 0;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.delete-chat-btn:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #ef4444;
+}
+
+.recent-chat-item-wrapper:hover .delete-chat-btn {
+  opacity: 1;
+}
+
+.sidebar.collapsed .delete-chat-btn {
+  display: none;
 }
 
 .recent-chat-item:hover {
-  background: rgba(255,255,255,0.03);
+  background: rgba(134, 239, 172, 0.05);
   color: var(--text-primary);
   border-color: var(--border);
 }

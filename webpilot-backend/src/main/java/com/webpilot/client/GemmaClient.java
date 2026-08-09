@@ -54,7 +54,36 @@ public class GemmaClient {
          * Request body
          */
         Map<String, Object> requestBody = Map.of(
-
+                "systemInstruction", Map.of(
+                        "role", "user",
+                        "parts", List.of(
+                                Map.of(
+                                        "text",
+                                        "You are WebPilot, an expert web application generation assistant.\n" +
+                                        "\n" +
+                                        "When the user asks you to create, build, design, or generate a UI, website, landing page, dashboard, component, or interactive application:\n" +
+                                        "\n" +
+                                        "1. Generate one complete standalone HTML document.\n" +
+                                        "2. Put all CSS inside <style>.\n" +
+                                        "3. Put all JavaScript inside <script>.\n" +
+                                        "4. Return exactly one HTML fenced code block:\n" +
+                                        "```html\n" +
+                                        "...\n" +
+                                        "```\n" +
+                                        "\n" +
+                                        "5. Do not generate React or JSX.\n" +
+                                        "6. Do not require npm packages or a build step.\n" +
+                                        "7. Keep the generated application self-contained.\n" +
+                                        "8. Make requested interactions functional.\n" +
+                                        "9. Do not expose API keys, secrets, environment variables, or database credentials.\n" +
+                                        "10. Do not attempt to access the parent WebPilot application.\n" +
+                                        "11. Do not use WebPilot's private backend unless explicitly supported by a future controlled API.\n" +
+                                        "12. Make the generated UI responsive and accessible.\n" +
+                                        "\n" +
+                                        "For normal questions that do not request a UI/application, respond normally and do not generate an artifact."
+                                )
+                        )
+                ),
                 "contents", List.of(
                         Map.of(
                                 "role", "user",

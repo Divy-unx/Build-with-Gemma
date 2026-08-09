@@ -2,64 +2,89 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
 export function useChat() {
-  const [sessions, setSessions] = useState(() => {
-    const saved = localStorage.getItem('webpilot_sessions');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return [{ id: 'default', title: 'New Conversation', messages: [] }];
-  });
-  
-  const [currentSessionId, setCurrentSessionId] = useState(() => {
-    const saved = localStorage.getItem('webpilot_current_session');
-    return saved || 'default';
-  });
-
+  const [sessions, setSessions] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState('checking');
-  const [theme, setThemeState] = useState(() => {
-    return localStorage.getItem('webpilot_theme') || 'dark';
-  });
+  const [theme, setThemeState] = useState(() => localStorage.getItem('webpilot_theme') || 'dark');
 
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('webpilot_theme', theme);
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem('webpilot_sessions', JSON.stringify(sessions));
-    localStorage.setItem('webpilot_current_session', currentSessionId);
-  }, [sessions, currentSessionId]);
-
+  // Load all conversations on mount
   useEffect(() => {
     async function init() {
       const isConnected = await api.checkBackend();
       setBackendStatus(isConnected ? 'connected' : 'disconnected');
+      
       if (isConnected) {
         try {
           const backendTheme = await api.getTheme();
           setThemeState(backendTheme);
+          
+          const convos = await api.getConversations();
+          setSessions(convos);
+          
+          if (convos.length > 0) {
+            switchChat(convos[0].id);
+          } else {
+            newChat();
+          }
         } catch (e) {
-          // Ignore theme fetch failure on init
+          console.error("Failed to initialize backend data", e);
         }
       }
     }
     init();
   }, []);
 
-  const currentSession = sessions.find(s => s.id === currentSessionId) || sessions[0];
-  const messages = currentSession.messages;
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('webpilot_theme', theme);
+  }, [theme]);
 
-  const updateCurrentSession = (updater) => {
-    setSessions(prev => prev.map(s => {
-      if (s.id === currentSessionId) {
-        return updater(s);
+  const [currentArtifact, setCurrentArtifact] = useState(null);
+  
+  // Clear artifact when switching chats
+  const switchChat = async (id) => {
+    try {
+      setCurrentArtifact(null);
+      setCurrentSessionId(id);
+      const detail = await api.getConversation(id);
+      setMessages(detail.messages || []);
+    } catch (e) {
+      console.error("Failed to load conversation messages", e);
+    }
+  };
+
+  const newChat = async () => {
+    try {
+      setCurrentArtifact(null);
+      const conv = await api.createConversation("New Conversation");
+      setSessions(prev => [conv, ...prev]);
+      setCurrentSessionId(conv.id);
+      setMessages([]);
+    } catch (e) {
+      console.error("Failed to create new conversation", e);
+    }
+  };
+
+  const deleteChat = async (id) => {
+    if (window.confirm("Are you sure you want to delete this conversation?")) {
+      try {
+        await api.deleteConversation(id);
+        setSessions(prev => prev.filter(s => s.id !== id));
+        if (currentSessionId === id) {
+          setCurrentArtifact(null);
+          if (sessions.length > 1) {
+            const nextConv = sessions.find(s => s.id !== id);
+            switchChat(nextConv.id);
+          } else {
+            newChat();
+          }
+        }
+      } catch (e) {
+        console.error("Failed to delete conversation", e);
       }
-      return s;
-    }));
+    }
   };
 
   const handleFunctionCall = async (fnString) => {
@@ -86,43 +111,73 @@ export function useChat() {
     }
   };
 
+  // Dynamically import the parser to avoid circular deps or complex setups if needed
+  // Alternatively we can just import it at the top. Let's assume it's imported at the top.
+  
   const sendMessage = useCallback(async (text) => {
-    if (!text.trim()) return;
+    if (!text.trim() || !currentSessionId) return;
 
     const userMsg = {
-      id: Date.now().toString(),
+      id: Date.now(),
       role: 'user',
       content: text,
       timestamp: new Date().toISOString()
     };
 
-    updateCurrentSession(s => ({
-      ...s,
-      messages: [...s.messages, userMsg],
-      title: s.messages.length === 0 ? text.slice(0, 30) : s.title
-    }));
-    
+    setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
-      const response = await api.sendMessage(text);
+      const response = await api.sendMessage(currentSessionId, text);
       let aiContent = response;
 
       if (response.startsWith('FUNCTION_CALL:')) {
         aiContent = await handleFunctionCall(response);
+      } else {
+        // Parse for artifact
+        import('../utils/artifactParser').then(({ parseArtifact }) => {
+          const parsed = parseArtifact(response);
+          if (parsed.hasArtifact) {
+            setCurrentArtifact({
+              id: Date.now().toString(),
+              type: parsed.type,
+              title: "Generated UI",
+              code: parsed.code,
+              createdAt: new Date().toISOString()
+            });
+            aiContent = parsed.text; // Update content to just be conversational text
+          }
+          
+          const aiMsg = {
+            id: Date.now() + 1,
+            role: 'ai',
+            content: aiContent,
+            timestamp: new Date().toISOString()
+          };
+          
+          setMessages(prev => [...prev, aiMsg]);
+        });
+        return; // Early return because state update happens async above
       }
 
       const aiMsg = {
-        id: (Date.now() + 1).toString(),
+        id: Date.now() + 1,
         role: 'ai',
         content: aiContent,
         timestamp: new Date().toISOString()
       };
       
-      updateCurrentSession(s => ({
-        ...s,
-        messages: [...s.messages, aiMsg]
-      }));
+      setMessages(prev => [...prev, aiMsg]);
+      
+      if (messages.length === 0) {
+        setSessions(prev => prev.map(s => {
+          if (s.id === currentSessionId) {
+            return { ...s, title: text.slice(0, 50) + (text.length > 50 ? '...' : '') };
+          }
+          return s;
+        }));
+      }
+
     } catch (error) {
       let errorText = "Unable to reach WebPilot backend.";
       if (error.message.includes('500')) {
@@ -132,30 +187,17 @@ export function useChat() {
       }
       
       const errorMsg = {
-        id: (Date.now() + 1).toString(),
+        id: Date.now() + 1,
         role: 'ai',
         content: errorText,
-        timestamp: new Date().toISOString(),
-        isError: true
+        isError: true,
+        timestamp: new Date().toISOString()
       };
-      updateCurrentSession(s => ({
-        ...s,
-        messages: [...s.messages, errorMsg]
-      }));
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
     }
-  }, [currentSessionId]);
-
-  const newChat = () => {
-    const id = Date.now().toString();
-    setSessions(prev => [{ id, title: 'New Conversation', messages: [] }, ...prev]);
-    setCurrentSessionId(id);
-  };
-
-  const switchChat = (id) => {
-    setCurrentSessionId(id);
-  };
+  }, [currentSessionId, messages]);
 
   const toggleTheme = async () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -176,8 +218,11 @@ export function useChat() {
     sendMessage,
     newChat,
     switchChat,
+    deleteChat,
     backendStatus,
     theme,
-    toggleTheme
+    toggleTheme,
+    currentArtifact,
+    setCurrentArtifact
   };
 }
