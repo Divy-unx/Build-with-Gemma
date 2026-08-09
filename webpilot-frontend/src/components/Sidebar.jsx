@@ -1,4 +1,5 @@
 import React from 'react';
+import webpilotLogo from '../assets/webpilot-mark.svg';
 
 export default function Sidebar({ sessions, currentSessionId, newChat, switchChat, deleteChat, backendStatus, isCollapsed, toggleSidebar }) {
   return (
@@ -17,7 +18,7 @@ export default function Sidebar({ sessions, currentSessionId, newChat, switchCha
 
       <div className="sidebar-content-inner">
         <div className="sidebar-header">
-          <img src="/src/assets/webpilot-mark.svg" alt="WebPilot Logo" className="brand-logo" />
+          <img src={webpilotLogo} alt="WebPilot Logo" className="brand-logo" />
           <h2>WebPilot</h2>
         </div>
 

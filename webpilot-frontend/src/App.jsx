@@ -93,6 +93,11 @@ function App() {
             const border = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
             const glassBg = isLight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
             const glow = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+            
+            // Override structural opaque colors to become translucent and blend with the custom background
+            const surface = isLight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
+            const sidebarBg = isLight ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)';
+            const bgSecondary = isLight ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
 
             appBackgroundStyle['--text-primary'] = textColor;
             appBackgroundStyle['--text-secondary'] = textSecondary;
@@ -100,6 +105,9 @@ function App() {
             appBackgroundStyle['--border'] = border;
             appBackgroundStyle['--glass-bg'] = glassBg;
             appBackgroundStyle['--glow'] = glow;
+            appBackgroundStyle['--surface'] = surface;
+            appBackgroundStyle['--sidebar-bg'] = sidebarBg;
+            appBackgroundStyle['--bg-secondary'] = bgSecondary;
             appBackgroundStyle.color = textColor;
         }
     } else if (background?.type === 'gradient' && background?.gradient) {
