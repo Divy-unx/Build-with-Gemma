@@ -23,7 +23,7 @@
   --sidebar-collapsed-width: 72px;
 }
 
-[data-theme="light"] {
+[data-theme="light"], .theme-light {
   /* Retaining light theme mapping logic, but with greens */
   --bg-dark: #F0FDF4;
   --bg-secondary: #E4F9EB;
@@ -539,6 +539,9 @@ button, input, textarea {
   overflow: hidden;
   position: relative;
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* =========================================================
@@ -648,13 +651,15 @@ button, input, textarea {
    ========================================================= */
 .chat-container {
   width: 100%;
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 32px 10%;
   display: flex;
@@ -662,8 +667,10 @@ button, input, textarea {
   gap: 24px;
 }
 
-.chat-messages::-webkit-scrollbar { width: 6px; }
-.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.chat-messages::-webkit-scrollbar { width: 8px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 4px; min-height: 40px; }
+.chat-messages::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
 .chat-bubble-row {
   display: flex;
@@ -696,7 +703,8 @@ button, input, textarea {
   font-size: 18px;
 }
 
-[data-theme="light"] .assistant-avatar {
+[data-theme="light"] .assistant-avatar,
+.theme-light .assistant-avatar {
   color: white;
 }
 
@@ -784,7 +792,8 @@ button, input, textarea {
   transition: 150ms ease;
 }
 
-[data-theme="light"] .chat-send-btn {
+[data-theme="light"] .chat-send-btn,
+.theme-light .chat-send-btn {
   color: white;
 }
 
@@ -964,7 +973,8 @@ button, input, textarea {
   transition: 150ms ease;
 }
 
-[data-theme="light"] .ai-submit-btn {
+[data-theme="light"] .ai-submit-btn,
+.theme-light .ai-submit-btn {
   color: white;
 }
 
@@ -1011,6 +1021,8 @@ button, input, textarea {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
@@ -1027,6 +1039,8 @@ button, input, textarea {
 
 .workspace-chat-container {
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -1055,7 +1069,8 @@ button, input, textarea {
 .chat-panel {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   width: 100%;
 }
 
@@ -1163,6 +1178,7 @@ button, input, textarea {
 .workspace-canvas-container {
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   position: relative;
   transition: all 250ms ease;
   width: 100%;

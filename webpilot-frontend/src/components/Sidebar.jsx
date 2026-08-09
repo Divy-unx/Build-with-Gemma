@@ -73,13 +73,13 @@ export default function Sidebar({ sessions, currentSessionId, newChat, switchCha
             <span className="status-label">Model</span>
             <strong className="model-name" title="Gemma 2B">{isCollapsed ? 'G' : 'Gemma 2B'}</strong>
           </div>
-          <div className="user-row">
+          {/* <div className="user-row">
             <div className="user-avatar" title="Local User">U</div>
             <div className="user-details">
               <strong>Local User</strong>
               <span>Workspace</span>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </aside>

@@ -60,54 +60,53 @@ function App() {
      * not just the chat area.
      */
     const appBackgroundStyle = {};
-
     const background = workspaceState?.background;
 
-    if (background?.type === 'solid' && background?.color) {
-        appBackgroundStyle.backgroundColor = background.color;
-
-        // Calculate contrast so text remains readable
-        // against the AI-selected background.
-        const hex = background.color.replace('#', '');
-
-        let r = 0;
-        let g = 0;
-        let b = 0;
-
-        if (hex.length === 3) {
-            r = parseInt(hex[0] + hex[0], 16);
-            g = parseInt(hex[1] + hex[1], 16);
-            b = parseInt(hex[2] + hex[2], 16);
-        } else if (hex.length === 6) {
-            r = parseInt(hex.substring(0, 2), 16);
-            g = parseInt(hex.substring(2, 4), 16);
-            b = parseInt(hex.substring(4, 6), 16);
+    const getRgbFromColor = (colorStr) => {
+        if (!colorStr || colorStr === 'transparent' || colorStr === 'none') return null;
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = colorStr;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+            if (a === 0) return null;
+            return { r, g, b };
+        } catch (e) {
+            return null;
         }
+    };
 
-        const yiq =
-            (r * 299 + g * 587 + b * 114) / 1000;
+    if (background?.type === 'solid' && background?.color) {
+        const rgb = getRgbFromColor(background.color);
+        if (rgb) {
+            appBackgroundStyle.backgroundColor = background.color;
 
-        const textColor =
-            yiq >= 128 ? '#000000' : '#ffffff';
+            const yiq = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            const isLight = yiq >= 128;
+            
+            const textColor = isLight ? '#000000' : '#ffffff';
+            const textSecondary = isLight ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)';
+            const textMuted = isLight ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)';
+            const border = isLight ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.15)';
+            const glassBg = isLight ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
+            const glow = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
 
-        const textSecondary =
-            yiq >= 128
-                ? 'rgba(0, 0, 0, 0.7)'
-                : 'rgba(255, 255, 255, 0.7)';
-
-        appBackgroundStyle['--text-primary'] = textColor;
-        appBackgroundStyle['--text-secondary'] = textSecondary;
-        appBackgroundStyle.color = textColor;
-    } else if (
-        background?.type === 'gradient' &&
-        background?.gradient
-    ) {
-        appBackgroundStyle.backgroundImage =
-            background.gradient;
+            appBackgroundStyle['--text-primary'] = textColor;
+            appBackgroundStyle['--text-secondary'] = textSecondary;
+            appBackgroundStyle['--text-muted'] = textMuted;
+            appBackgroundStyle['--border'] = border;
+            appBackgroundStyle['--glass-bg'] = glassBg;
+            appBackgroundStyle['--glow'] = glow;
+            appBackgroundStyle.color = textColor;
+        }
+    } else if (background?.type === 'gradient' && background?.gradient) {
+        appBackgroundStyle.backgroundImage = background.gradient;
 
         appBackgroundStyle['--text-primary'] = '#ffffff';
-        appBackgroundStyle['--text-secondary'] =
-            'rgba(255, 255, 255, 0.8)';
+        appBackgroundStyle['--text-secondary'] = 'rgba(255, 255, 255, 0.8)';
         appBackgroundStyle.color = '#ffffff';
     }
 
@@ -118,6 +117,7 @@ function App() {
                     ? 'sidebar-collapsed'
                     : ''
             } ${isMobile ? 'is-mobile' : ''}`}
+            data-theme={theme}
             style={appBackgroundStyle}
         >
             {isMobile && !isSidebarCollapsed && (
