@@ -1,9 +1,12 @@
 package com.webpilot.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +16,7 @@ public class GemmaClient {
     private final RestClient restClient;
     private final String apiKey;
     private final String model;
+    private final ObjectMapper objectMapper;
 
     public GemmaClient(
             @Value("${gemma.api-key}") String apiKey,
@@ -20,6 +24,7 @@ public class GemmaClient {
     ) {
         this.apiKey = apiKey;
         this.model = model;
+        this.objectMapper = new ObjectMapper();
 
         this.restClient = RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com")
@@ -27,60 +32,26 @@ public class GemmaClient {
     }
 
     public String generate(String message) {
-
         System.out.println(">>> GEMMA GENERATE CALLED");
         System.out.println(">>> MESSAGE: " + message);
 
-        /*
-         * Tool declaration
-         */
-        Map<String, Object> setThemeFunction = Map.of(
-                "name", "set_theme",
-                "description", "Changes the WebPilot workspace theme.",
-                "parameters", Map.of(
-                        "type", "OBJECT",
-                        "properties", Map.of(
-                                "theme", Map.of(
-                                        "type", "STRING",
-                                        "description", "The theme to apply.",
-                                        "enum", List.of("light", "dark")
-                                )
-                        ),
-                        "required", List.of("theme")
-                )
-        );
-
-        /*
-         * Request body
-         */
         Map<String, Object> requestBody = Map.of(
                 "systemInstruction", Map.of(
                         "role", "user",
                         "parts", List.of(
                                 Map.of(
                                         "text",
-                                        "You are WebPilot, an expert web application generation assistant.\n" +
-                                        "\n" +
-                                        "When the user asks you to create, build, design, or generate a UI, website, landing page, dashboard, component, or interactive application:\n" +
-                                        "\n" +
-                                        "1. Generate one complete standalone HTML document.\n" +
-                                        "2. Put all CSS inside <style>.\n" +
-                                        "3. Put all JavaScript inside <script>.\n" +
-                                        "4. Return exactly one HTML fenced code block:\n" +
-                                        "```html\n" +
-                                        "...\n" +
-                                        "```\n" +
-                                        "\n" +
-                                        "5. Do not generate React or JSX.\n" +
-                                        "6. Do not require npm packages or a build step.\n" +
-                                        "7. Keep the generated application self-contained.\n" +
-                                        "8. Make requested interactions functional.\n" +
-                                        "9. Do not expose API keys, secrets, environment variables, or database credentials.\n" +
-                                        "10. Do not attempt to access the parent WebPilot application.\n" +
-                                        "11. Do not use WebPilot's private backend unless explicitly supported by a future controlled API.\n" +
-                                        "12. Make the generated UI responsive and accessible.\n" +
-                                        "\n" +
-                                        "For normal questions that do not request a UI/application, respond normally and do not generate an artifact."
+                                        "You are WebPilot, an AI-controlled workspace. You support THREE modes of operation:\n\n" +
+                                        "MODE 1: NORMAL CONVERSATION\n" +
+                                        "For general questions (e.g., 'Explain Docker'), respond with normal conversational text.\n\n" +
+                                        "MODE 2: SIMPLE UI WORKSPACE ACTION\n" +
+                                        "When the user asks to modify the workspace (e.g., 'Make background red', 'Add a button', 'Remove button'), you MUST call the provided tools. You can call multiple tools in sequence if needed.\n\n" +
+                                        "MODE 3: COMPLEX GENERATIVE UI (ARTIFACT)\n" +
+                                        "When the user asks for a complex application (e.g., 'Build a calculator', 'Create a dashboard'), output a standalone HTML document inside a ```html block containing HTML/CSS/JS. Do not use tools for complex apps.\n\n" +
+                                        "IMPORTANT RULES:\n" +
+                                        "- NEVER claim an action is 'Done' unless you have executed the tool.\n" +
+                                        "- Do not use keyword matching. Understand the user's natural language intent.\n" +
+                                        "- Tool calls must only use the predefined tools and arguments."
                                 )
                         )
                 ),
@@ -88,185 +59,187 @@ public class GemmaClient {
                         Map.of(
                                 "role", "user",
                                 "parts", List.of(
-                                        Map.of(
-                                                "text",
-                                                message
-                                        )
+                                        Map.of("text", message)
                                 )
                         )
                 ),
-
                 "tools", List.of(
-                        Map.of(
-                                "functionDeclarations",
-                                List.of(setThemeFunction)
-                        )
+                        Map.of("functionDeclarations", getToolDeclarations())
                 ),
-
                 "generationConfig", Map.of(
-                        "thinkingConfig", Map.of(
-                                "thinkingLevel", "minimal"
-                        )
+                        "thinkingConfig", Map.of("thinkingLevel", "minimal")
                 )
         );
 
-        System.out.println(">>> SENDING REQUEST TO GEMMA");
-        System.out.println(">>> MODEL: " + model);
-
         try {
-
             Map<?, ?> response = restClient.post()
-                    .uri(
-                            "/v1beta/models/{model}:generateContent",
-                            model
-                    )
+                    .uri("/v1beta/models/{model}:generateContent", model)
                     .header("x-goog-api-key", apiKey)
                     .header("Content-Type", "application/json")
                     .body(requestBody)
                     .retrieve()
                     .body(Map.class);
 
-            System.out.println(">>> GEMMA RAW RESPONSE:");
-            System.out.println(response);
-
             return extractResponse(response);
-
         } catch (Exception e) {
-
             System.out.println(">>> GEMMA REQUEST FAILED");
             e.printStackTrace();
-
-            throw e;
+            throw new RuntimeException("Failed to call Gemma API", e);
         }
     }
 
+    private List<Map<String, Object>> getToolDeclarations() {
+        return List.of(
+                Map.of(
+                        "name", "set_background_color",
+                        "description", "Sets the workspace background color.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "color", Map.of("type", "STRING", "description", "Valid CSS color or HEX (e.g. #ff0000)")
+                                ),
+                                "required", List.of("color")
+                        )
+                ),
+                Map.of(
+                        "name", "set_background_gradient",
+                        "description", "Sets the workspace background gradient.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "from", Map.of("type", "STRING"),
+                                        "to", Map.of("type", "STRING"),
+                                        "direction", Map.of("type", "STRING")
+                                ),
+                                "required", List.of("from", "to", "direction")
+                        )
+                ),
+                Map.of(
+                        "name", "set_theme",
+                        "description", "Switches the global application theme.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "theme", Map.of("type", "STRING", "enum", List.of("light", "dark"))
+                                ),
+                                "required", List.of("theme")
+                        )
+                ),
+                Map.of(
+                        "name", "create_ui_element",
+                        "description", "Adds a UI component to the workspace canvas.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "type", Map.of("type", "STRING", "enum", List.of("button", "heading", "text", "input", "card", "badge", "divider")),
+                                        "id", Map.of("type", "STRING", "description", "Unique identifier"),
+                                        "text", Map.of("type", "STRING", "description", "Inner text or label")
+                                ),
+                                "required", List.of("type", "id")
+                        )
+                ),
+                Map.of(
+                        "name", "remove_ui_element",
+                        "description", "Removes a UI component by its ID.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "id", Map.of("type", "STRING")
+                                ),
+                                "required", List.of("id")
+                        )
+                ),
+                Map.of(
+                        "name", "update_ui_element",
+                        "description", "Updates styling or properties of an existing UI component.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "id", Map.of("type", "STRING"),
+                                        "properties", Map.of("type", "OBJECT", "description", "Object containing style/props to update (e.g. {backgroundColor: '#ef4444', text: 'New'})")
+                                ),
+                                "required", List.of("id", "properties")
+                        )
+                ),
+                Map.of(
+                        "name", "show_notification",
+                        "description", "Shows a temporary toast notification in the workspace.",
+                        "parameters", Map.of(
+                                "type", "OBJECT",
+                                "properties", Map.of(
+                                        "message", Map.of("type", "STRING"),
+                                        "type", Map.of("type", "STRING", "enum", List.of("success", "error", "info"))
+                                ),
+                                "required", List.of("message", "type")
+                        )
+                ),
+                Map.of(
+                        "name", "clear_workspace",
+                        "description", "Clears all AI-generated components from the workspace canvas.",
+                        "parameters", Map.of("type", "OBJECT")
+                )
+        );
+    }
+
     private String extractResponse(Map<?, ?> response) {
-
-        System.out.println(">>> EXTRACTING GEMMA RESPONSE");
-
-        if (response == null) {
-            throw new IllegalStateException(
-                    "Gemma returned a null response."
-            );
-        }
+        if (response == null) throw new IllegalStateException("Gemma returned a null response.");
 
         Object candidatesObject = response.get("candidates");
-
-        System.out.println(">>> CANDIDATES: " + candidatesObject);
-
-        if (!(candidatesObject instanceof List<?> candidates)
-                || candidates.isEmpty()) {
-
-            throw new IllegalStateException(
-                    "Gemma returned no candidates: " + response
-            );
+        if (!(candidatesObject instanceof List<?> candidates) || candidates.isEmpty()) {
+            throw new IllegalStateException("Gemma returned no candidates.");
         }
 
         Object candidateObject = candidates.get(0);
-
         if (!(candidateObject instanceof Map<?, ?> candidate)) {
-
-            throw new IllegalStateException(
-                    "Invalid candidate response: " + response
-            );
+            throw new IllegalStateException("Invalid candidate response.");
         }
-
-        System.out.println(">>> CANDIDATE: " + candidate);
 
         Object contentObject = candidate.get("content");
-
         if (!(contentObject instanceof Map<?, ?> content)) {
-
-            throw new IllegalStateException(
-                    "Gemma returned no content: " + response
-            );
+            throw new IllegalStateException("Gemma returned no content.");
         }
-
-        System.out.println(">>> CONTENT: " + content);
 
         Object partsObject = content.get("parts");
-
-        if (!(partsObject instanceof List<?> parts)
-                || parts.isEmpty()) {
-
-            throw new IllegalStateException(
-                    "Gemma returned no parts: " + response
-            );
+        if (!(partsObject instanceof List<?> parts) || parts.isEmpty()) {
+            throw new IllegalStateException("Gemma returned no parts.");
         }
 
-        System.out.println(">>> PARTS: " + parts);
+        List<Map<String, Object>> toolCalls = new ArrayList<>();
+        StringBuilder textBuilder = new StringBuilder();
 
-        /*
-         * FIRST:
-         * Search every part for a function call.
-         */
         for (Object partObject : parts) {
+            if (!(partObject instanceof Map<?, ?> part)) continue;
 
-            if (!(partObject instanceof Map<?, ?> part)) {
-                continue;
-            }
-
-            System.out.println(">>> CHECKING PART: " + part);
-
-            Object functionCallObject =
-                    part.get("functionCall");
-
+            Object functionCallObject = part.get("functionCall");
             if (functionCallObject instanceof Map<?, ?> functionCall) {
+                Map<String, Object> action = new HashMap<>();
+                action.put("tool", functionCall.get("name"));
+                action.put("args", functionCall.get("args"));
+                toolCalls.add(action);
+            }
 
-                String functionName =
-                        String.valueOf(
-                                functionCall.get("name")
-                        );
-
-                Object arguments =
-                        functionCall.get("args");
-
-                System.out.println(
-                        ">>> FUNCTION CALL FOUND"
-                );
-
-                System.out.println(
-                        ">>> FUNCTION: " + functionName
-                );
-
-                System.out.println(
-                        ">>> ARGUMENTS: " + arguments
-                );
-
-                return "FUNCTION_CALL: "
-                        + functionName
-                        + " "
-                        + arguments;
+            Object textObj = part.get("text");
+            if (textObj instanceof String textValue && !textValue.isBlank()) {
+                textBuilder.append(textValue).append("\n");
             }
         }
 
-        /*
-         * SECOND:
-         * If there is no function call,
-         * search for normal text.
-         */
-        for (Object partObject : parts) {
-
-            if (!(partObject instanceof Map<?, ?> part)) {
-                continue;
-            }
-
-            Object text = part.get("text");
-
-            if (text instanceof String textValue
-                    && !textValue.isBlank()) {
-
-                System.out.println(
-                        ">>> TEXT RESPONSE FOUND"
-                );
-
-                return textValue;
-            }
+        Map<String, Object> result = new HashMap<>();
+        if (!toolCalls.isEmpty()) {
+            result.put("type", "tool_calls");
+            result.put("actions", toolCalls);
+            // Default message if the AI didn't provide conversational text along with the tool calls
+            String msg = textBuilder.toString().trim();
+            result.put("message", msg.isEmpty() ? "Executed workspace actions." : msg);
+        } else {
+            result.put("type", "message");
+            result.put("message", textBuilder.toString().trim());
         }
 
-        throw new IllegalStateException(
-                "Gemma returned no usable text or function call: "
-                        + response
-        );
+        try {
+            return objectMapper.writeValueAsString(result);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize Gemma response", e);
+        }
     }
 }
