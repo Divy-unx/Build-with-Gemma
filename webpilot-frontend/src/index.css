@@ -996,3 +996,385 @@ button, input, textarea {
   }
   .ai-panel { width: calc(100% - 32px); }
 }
+
+/* ================================================== */
+/* GENERATIVE UI / ARTIFACTS STYLES                     */
+/* ================================================== */
+
+.workspace-main.has-artifact {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.browser-viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  transition: all 250ms ease;
+}
+
+.workspace-main.has-artifact .browser-viewport {
+  flex: 0 0 40%;
+  max-width: 40%;
+  border-right: 1px solid var(--border);
+  margin: 0;
+}
+
+.workspace-chat-container {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 250ms ease;
+}
+
+.workspace-artifact-container {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  position: relative;
+  transition: all 250ms ease;
+}
+
+.artifact-fullscreen .browser-viewport {
+  flex: 0;
+  max-width: 0;
+  border-right: none;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.chat-panel.split-mode .workspace-header {
+  border-bottom: 1px solid var(--border);
+}
+
+.artifact-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.artifact-toolbar {
+  height: 60px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+}
+
+.artifact-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.artifact-icon {
+  color: var(--accent);
+}
+
+.artifact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.artifact-content {
+  flex: 1;
+  height: calc(100% - 60px);
+  position: relative;
+  background: #ffffff; /* Typically artifacts want a white background to render properly, or transparent */
+  border-radius: 0 0 16px 0;
+  overflow: hidden;
+}
+
+/* Enforce white background in dark mode for iframe sandbox if needed, but transparent is usually fine.
+   Let's use white so standard HTML looks normal */
+.theme-dark .artifact-content {
+  background: #ffffff;
+}
+
+.artifact-renderer-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.artifact-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.artifact-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
+
+@media (max-width: 1024px) {
+  .workspace-main.has-artifact {
+    flex-direction: column;
+  }
+  
+  .workspace-main.has-artifact .browser-viewport {
+    flex: 0 0 45%;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  
+  .artifact-fullscreen .browser-viewport {
+    flex: 0;
+    max-height: 0;
+    border-bottom: none;
+  }
+}
+
+/* ================================================== */
+/* AI WORKSPACE CANVAS STYLES                           */
+/* ================================================== */
+
+.workspace-canvas-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 250ms ease;
+  width: 100%;
+}
+
+.ai-workspace-canvas {
+  width: 100%;
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-components-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+}
+
+/* Inherit green glassmorphism by default */
+.ai-btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 250ms ease;
+}
+.ai-btn:hover {
+  filter: brightness(1.1);
+}
+
+.ai-heading {
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.ai-text {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ai-input {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: 8px;
+  outline: none;
+  backdrop-filter: blur(12px);
+  width: 250px;
+}
+
+.ai-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  color: var(--text-primary);
+}
+
+.ai-badge {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--accent);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ai-divider {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+/* Notifications */
+.ai-notifications-container {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+}
+
+.ai-notification {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  animation: slideIn 0.3s ease forwards;
+}
+
+.ai-notification.success {
+  border-left: 4px solid var(--accent);
+}
+.ai-notification.error {
+  border-left: 4px solid #ef4444;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* =========================================================
+   MOBILE RESPONSIVENESS
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .app-container {
+    height: 100dvh; /* use dynamic viewport height for mobile */
+  }
+
+  /* Overlay backdrop when sidebar is open on mobile */
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(2px);
+    z-index: 150;
+  }
+
+  /* Mobile sidebar is a sliding drawer */
+  .app-container.is-mobile .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100dvh;
+    z-index: 200;
+    width: min(85vw, 320px);
+    transform: translateX(0);
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .app-container.is-mobile.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  /* Make sure the workspace doesn't have left margin on mobile */
+  .app-container.is-mobile .workspace-main {
+    margin-left: 0 !important;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 0;
+    border-radius: 0;
+  }
+  
+  .workspace-main {
+    flex: 1;
+    width: 100%;
+  }
+
+  /* Remove 40/60 split for artifacts on mobile */
+  .workspace-main.has-artifact .browser-viewport {
+    max-width: 100%;
+    flex: 1;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* If we have an artifact, we just stack them */
+  .workspace-main.has-artifact {
+    flex-direction: column;
+  }
+  
+  /* Mobile header */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 8px;
+    margin-right: 8px;
+    margin-left: -8px;
+    border-radius: 6px;
+    color: var(--text-primary);
+  }
+  
+  /* Ensure header title doesn't overflow */
+  .header-title-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .header-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Improve touch targets for mobile */
+  .icon-btn, .mobile-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .chat-bottom-input {
+    font-size: 16px; /* Prevents iOS Safari zoom */
+  }
+}

@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useReducer } from 'react';
 import { api } from '../services/api';
+import { workspaceReducer, initialWorkspaceState } from '../agent/workspaceReducer';
+import { toolDispatcher } from '../agent/toolDispatcher';
 
 export function useChat() {
   const [sessions, setSessions] = useState([]);
@@ -43,10 +45,13 @@ export function useChat() {
 
   const [currentArtifact, setCurrentArtifact] = useState(null);
   
+  const [workspaceState, dispatchWorkspace] = useReducer(workspaceReducer, initialWorkspaceState);
+
   // Clear artifact when switching chats
   const switchChat = async (id) => {
     try {
       setCurrentArtifact(null);
+      dispatchWorkspace({ type: 'CLEAR_WORKSPACE' });
       setCurrentSessionId(id);
       const detail = await api.getConversation(id);
       setMessages(detail.messages || []);
@@ -58,6 +63,7 @@ export function useChat() {
   const newChat = async () => {
     try {
       setCurrentArtifact(null);
+      dispatchWorkspace({ type: 'CLEAR_WORKSPACE' });
       const conv = await api.createConversation("New Conversation");
       setSessions(prev => [conv, ...prev]);
       setCurrentSessionId(conv.id);
@@ -74,6 +80,7 @@ export function useChat() {
         setSessions(prev => prev.filter(s => s.id !== id));
         if (currentSessionId === id) {
           setCurrentArtifact(null);
+          dispatchWorkspace({ type: 'CLEAR_WORKSPACE' });
           if (sessions.length > 1) {
             const nextConv = sessions.find(s => s.id !== id);
             switchChat(nextConv.id);
@@ -87,33 +94,28 @@ export function useChat() {
     }
   };
 
-  const handleFunctionCall = async (fnString) => {
+  const handleToolCalls = async (toolCallsJson) => {
     try {
-      const match = fnString.match(/FUNCTION_CALL:\s*(\w+)\s*{(.+)}/);
-      if (!match) return "I executed a function, but couldn't parse the result.";
-      
-      const fnName = match[1];
-      const argsRaw = match[2];
-      
-      if (fnName === 'set_theme') {
-        const themeMatch = argsRaw.match(/theme=(\w+)/);
-        if (themeMatch) {
-          const newTheme = themeMatch[1];
-          await api.setTheme(newTheme);
-          setThemeState(newTheme);
-          return `Done. I've switched the workspace to ${newTheme} mode.`;
+      const data = JSON.parse(toolCallsJson);
+      let successMessages = [];
+
+      for (const action of data.actions) {
+        try {
+          const result = await toolDispatcher.execute(action.tool, action.args, dispatchWorkspace, setThemeState);
+          successMessages.push(result);
+        } catch (err) {
+          console.error("Tool execution failed:", err);
+          successMessages.push(`Failed to execute ${action.tool}.`);
         }
       }
-      return "Function executed successfully.";
+
+      return data.message || successMessages.join(" ");
     } catch (e) {
-      console.error(e);
-      return "An error occurred while executing the function.";
+      console.error("Failed to parse tool calls JSON", e);
+      return "WebPilot couldn't interpret that instruction.";
     }
   };
 
-  // Dynamically import the parser to avoid circular deps or complex setups if needed
-  // Alternatively we can just import it at the top. Let's assume it's imported at the top.
-  
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || !currentSessionId) return;
 
@@ -131,12 +133,26 @@ export function useChat() {
       const response = await api.sendMessage(currentSessionId, text);
       let aiContent = response;
 
-      if (response.startsWith('FUNCTION_CALL:')) {
-        aiContent = await handleFunctionCall(response);
+      // Handle structured JSON response from new backend
+      if (response.startsWith('{') && response.includes('"type"')) {
+        try {
+          const parsed = JSON.parse(response);
+          if (parsed.type === 'tool_calls') {
+            aiContent = await handleToolCalls(response);
+          } else if (parsed.type === 'message') {
+            aiContent = parsed.message;
+          }
+        } catch (e) {
+          // If it fails to parse as JSON, fallback to text parsing
+          console.error("Failed to parse backend response as JSON", e);
+        }
+      } else if (response.startsWith('FUNCTION_CALL:')) {
+        // Fallback for old format if somehow returned
+        aiContent = "WebPilot understood the request but couldn't apply that change.";
       } else {
-        // Parse for artifact
+        // Parse for artifact (Level 2 Generative UI)
         import('../utils/artifactParser').then(({ parseArtifact }) => {
-          const parsed = parseArtifact(response);
+          const parsed = parseArtifact(aiContent);
           if (parsed.hasArtifact) {
             setCurrentArtifact({
               id: Date.now().toString(),
@@ -145,7 +161,7 @@ export function useChat() {
               code: parsed.code,
               createdAt: new Date().toISOString()
             });
-            aiContent = parsed.text; // Update content to just be conversational text
+            aiContent = parsed.text; 
           }
           
           const aiMsg = {
@@ -157,7 +173,7 @@ export function useChat() {
           
           setMessages(prev => [...prev, aiMsg]);
         });
-        return; // Early return because state update happens async above
+        return; 
       }
 
       const aiMsg = {
@@ -223,6 +239,8 @@ export function useChat() {
     theme,
     toggleTheme,
     currentArtifact,
-    setCurrentArtifact
+    setCurrentArtifact,
+    workspaceState,
+    dispatchWorkspace
   };
 }

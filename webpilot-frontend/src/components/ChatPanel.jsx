@@ -9,7 +9,9 @@ export default function ChatPanel({
   isAIOpen, 
   theme, 
   toggleTheme,
-  splitMode
+  splitMode,
+  toggleSidebar,
+  isMobile
 }) {
   const endRef = useRef(null);
   
@@ -22,7 +24,18 @@ export default function ChatPanel({
   return (
     <div className={`chat-panel ${splitMode ? 'split-mode' : ''}`}>
       <header className="workspace-header">
-        <div className="header-title">WebPilot</div>
+        <div className="header-title-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {isMobile && (
+            <button className="icon-btn mobile-menu-btn" onClick={toggleSidebar}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+              </svg>
+            </button>
+          )}
+          <div className="header-title">WebPilot</div>
+        </div>
         <div className="header-actions">
           <button className={`icon-btn ${isAIOpen ? 'active' : ''}`} onClick={toggleAI} title="Toggle AI Panel">
             <span style={{ fontSize: '14px', marginRight: '4px' }}>✦</span> AI

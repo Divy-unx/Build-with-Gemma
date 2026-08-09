@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Workspace from './components/Workspace';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -15,16 +15,53 @@ function App() {
     sendMessage, 
     newChat, 
     switchChat, 
+    deleteChat,
     backendStatus, 
     theme, 
-    toggleTheme 
+    toggleTheme,
+    currentArtifact,
+    setCurrentArtifact,
+    workspaceState,
+    dispatchWorkspace
   } = useChat();
 
   const [isAIOpen, setIsAIOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      if (mobile && !isMobile) {
+        setIsSidebarCollapsed(true);
+      } else if (!mobile && isMobile) {
+        setIsSidebarCollapsed(false);
+      }
+      setIsMobile(mobile);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobile]);
+
+  // Compute full-page background from workspace state
+  let appBackgroundStyle = {};
+  if (workspaceState?.background) {
+    if (workspaceState.background.type === 'solid' && workspaceState.background.color) {
+      appBackgroundStyle.backgroundColor = workspaceState.background.color;
+    } else if (workspaceState.background.type === 'gradient' && workspaceState.background.gradient) {
+      appBackgroundStyle.backgroundImage = workspaceState.background.gradient;
+    }
+  }
 
   return (
-    <div className={`app-container theme-${theme} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+    <div 
+      className={`app-container theme-${theme} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isMobile ? 'is-mobile' : ''}`}
+      style={appBackgroundStyle}
+    >
+      {isMobile && !isSidebarCollapsed && (
+        <div className="mobile-sidebar-backdrop" onClick={() => setIsSidebarCollapsed(true)} />
+      )}
       <Sidebar 
         sessions={sessions} 
         currentSessionId={currentSessionId} 
@@ -44,6 +81,11 @@ function App() {
         theme={theme}
         toggleTheme={toggleTheme}
         WelcomeScreen={WelcomeScreen}
+        currentArtifact={currentArtifact}
+        setCurrentArtifact={setCurrentArtifact}
+        workspaceState={workspaceState}
+        toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isMobile={isMobile}
       />
       <AIPanel 
         isOpen={isAIOpen} 
