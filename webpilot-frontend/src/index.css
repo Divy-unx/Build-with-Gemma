@@ -737,7 +737,7 @@ button, input, textarea {
 /* Chat Input */
 .chat-input-wrapper {
   padding: 24px 10%;
-  background: linear-gradient(to top, var(--bg-dark) 60%, transparent);
+  background: transparent;
 }
 
 .chat-input-form {

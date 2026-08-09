@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: webpilot_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: webpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - webpilot_pgdata:/var/lib/postgresql/data
+
+volumes:
+  webpilot_pgdata:
