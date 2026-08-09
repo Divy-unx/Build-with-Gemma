@@ -11,8 +11,10 @@ export function useChat() {
   const [backendStatus, setBackendStatus] = useState('checking');
   const [theme, setThemeState] = useState(() => localStorage.getItem('webpilot_theme') || 'dark');
 
-  // Load all conversations on mount
+  // Initialization and Polling
   useEffect(() => {
+    let pollInterval;
+
     async function init() {
       const isConnected = await api.checkBackend();
       setBackendStatus(isConnected ? 'connected' : 'disconnected');
@@ -26,17 +28,29 @@ export function useChat() {
           setSessions(convos);
           
           if (convos.length > 0) {
-            switchChat(convos[0].id);
-          } else {
+            if (!currentSessionId) switchChat(convos[0].id);
+          } else if (!currentSessionId) {
             newChat();
           }
+          // Clear polling if connected
+          if (pollInterval) clearInterval(pollInterval);
         } catch (e) {
           console.error("Failed to initialize backend data", e);
         }
+      } else {
+        // Poll every 3 seconds if disconnected
+        if (!pollInterval) {
+          pollInterval = setInterval(init, 3000);
+        }
       }
     }
+    
     init();
-  }, []);
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [currentSessionId]);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -117,7 +131,20 @@ export function useChat() {
   };
 
   const sendMessage = useCallback(async (text) => {
-    if (!text.trim() || !currentSessionId) return;
+    if (!text.trim()) return;
+
+    let targetSessionId = currentSessionId;
+    if (!targetSessionId) {
+      // If we don't have a session (e.g. backend was offline), try to create one now
+      try {
+        const conv = await api.createConversation("New Conversation");
+        setSessions(prev => [conv, ...prev]);
+        setCurrentSessionId(conv.id);
+        targetSessionId = conv.id;
+      } catch (e) {
+        console.error("Could not create session for new message");
+      }
+    }
 
     const userMsg = {
       id: Date.now(),
@@ -130,7 +157,9 @@ export function useChat() {
     setIsLoading(true);
 
     try {
-      const response = await api.sendMessage(currentSessionId, text);
+      if (!targetSessionId) throw new Error("No backend connection available.");
+      
+      const response = await api.sendMessage(targetSessionId, text);
       let aiContent = response;
 
       // Handle structured JSON response from new backend
