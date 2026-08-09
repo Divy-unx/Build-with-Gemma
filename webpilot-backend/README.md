@@ -76,9 +76,11 @@ Spring Boot backend
 
 ```text
 Build/
+├─ .gitignore
 ├─ README.md
 ├─ docker-compose.yml
 ├─ webpilot-backend/
+│  ├─ .env
 │  ├─ pom.xml
 │  ├─ mvnw / mvnw.cmd
 │  └─ src/
@@ -92,10 +94,10 @@ Build/
 │     │  └─ service/
 │     ├─ main/resources/
 │     │  ├─ application.properties
-│     │  ├─ application.yaml
 │     │  └─ db/migration/
 │     └─ test/java/
 └─ webpilot-frontend/
+   ├─ .env
    ├─ package.json
    ├─ vite.config.js
    └─ src/
@@ -118,27 +120,31 @@ Install the following before starting the application:
 
 ## Configuration
 
+All backend configuration parameters are consolidated in `webpilot-backend/src/main/resources/application.properties`.
+
 ### Backend environment
 
 The backend imports an optional `.env` file from its working directory through `spring.config.import=optional:file:.env[.properties]`. Create `webpilot-backend/.env` for local development:
 
 ```properties
+DB_URL=jdbc:postgresql://localhost:5432/webpilot
 DB_USERNAME=postgres
-DB_PASSWORD=postgres
+DB_PASSWORD=postgresql
 FRONTEND_URL=http://localhost:5173
 GOOGLE_API_KEY=your_google_api_key
 ```
 
-Required values:
+Configured variables:
 
-| Variable | Purpose | Example |
+| Variable | Purpose | Local Example |
 |---|---|---|
+| `DB_URL` | PostgreSQL JDBC connection URL | `jdbc:postgresql://localhost:5432/webpilot` |
 | `DB_USERNAME` | PostgreSQL username | `postgres` |
-| `DB_PASSWORD` | PostgreSQL password | `postgres` |
-| `FRONTEND_URL` | Single allowed CORS origin | `http://localhost:5173` |
+| `DB_PASSWORD` | PostgreSQL password | `postgresql` |
+| `FRONTEND_URL` | Allowed CORS origin | `http://localhost:5173` |
 | `GOOGLE_API_KEY` | Google Generative Language API key | `your_google_api_key` |
 
-The database URL is currently fixed to `jdbc:postgresql://localhost:5432/webpilot` in the application configuration. The configured AI model is `gemma-4-26b-a4b-it`. If `GOOGLE_API_KEY` is omitted, the YAML configuration supplies a testing placeholder; AI calls will not work with that placeholder.
+The configured AI model is `gemma-4-26b-a4b-it`. A valid `GOOGLE_API_KEY` is required for AI model calls to succeed.
 
 ### Frontend environment
 
@@ -149,6 +155,11 @@ VITE_API_BASE_URL=http://localhost:8080
 ```
 
 Vite exposes only variables prefixed with `VITE_` to browser code. The frontend calls backend routes by appending paths such as `/api/theme` and `/api/conversations` to this base URL.
+
+### Local Development vs. Production Configuration
+
+- **Local Development:** Create `.env` files in `webpilot-backend/` and `webpilot-frontend/` using local development values. Local `.env` files are included in `.gitignore` and must never be committed to Git.
+- **Production Deployment:** Do not deploy local `.env` files. In production (e.g. AWS, Render, Heroku, Docker containers), configure environment variables (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `FRONTEND_URL`, `GOOGLE_API_KEY`, `VITE_API_BASE_URL`) directly via the deployment platform's environment settings or secrets manager.
 
 ## Start the database
 
@@ -162,7 +173,7 @@ The compose file creates:
 
 - Database: `webpilot`
 - Username: `postgres`
-- Password: `postgres`
+- Password: `postgresql`
 - Host port: `5432`
 - Container: `webpilot_db`
 - Persistent volume: `webpilot_pgdata`
@@ -306,10 +317,6 @@ A basic verification sequence is:
 - Generated artifact JavaScript is allowed by the iframe sandbox. Treat model-generated HTML as untrusted content and review the security model before exposing the application beyond local development.
 - The backend currently logs prompts and AI failures to standard output. Avoid using sensitive prompts in development logs.
 - Conversation and message lookup errors currently surface as `IllegalArgumentException`; there is no dedicated global error response format.
-
-## Known source issue to resolve before relying on the frontend
-
-The current `webpilot-frontend/src/hooks/useChat.js` uses `useReducer`, `workspaceReducer`, and `initialWorkspaceState`, but the file's imports shown in the repository only import `useState`, `useEffect`, and `useCallback`, and do not import the reducer symbols. This can cause the frontend build to fail with undefined identifiers. Add the missing React and reducer imports before treating the frontend build as verified.
 
 ## License
 
