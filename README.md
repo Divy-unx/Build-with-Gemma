@@ -172,8 +172,8 @@ docker compose up -d db
 The compose file creates:
 
 - Database: `webpilot`
-- Username: `postgres`
-- Password: `postgresql`
+- Username: `postmy`
+- Password: `postgres`
 - Host port: `5432`
 - Container: `webpilot_db`
 - Persistent volume: `webpilot_pgdata`
